@@ -1,6 +1,7 @@
-from pymoab import core, types
 import numpy as np
-from uxarray.grid.coordinates import xyz_to_lonlat_deg
+import xarray as xr
+from pymoab import core, types
+from uxarray.grid.coordinates import _xyz_to_lonlat_deg
 from uxarray.constants import INT_DTYPE, INT_FILL_VALUE
 from uxarray.conventions import ugrid
 
@@ -42,24 +43,26 @@ def _read_moab(filename):
     connectivity = [[idx - 1 for idx in face] for face in connectivity]
 
     # Convert to spherical coordinates (longitude, latitude)
-    lon, lat = xyz_to_lonlat_deg(coords)
+    lon, lat = _xyz_to_lonlat_deg(coords[:, 0], coords[:, 1], coords[:, 2])
 
     # Convert connectivity list to numpy array, ensuring it is the correct shape
     max_face_nodes = max(len(face) for face in connectivity)
-    face_node_connectivity = np.full((len(connectivity), max_face_nodes),
-                                     INT_FILL_VALUE,
-                                     dtype=INT_DTYPE)
+    face_node_connectivity = np.full(
+        (len(connectivity), max_face_nodes), INT_FILL_VALUE, dtype=INT_DTYPE
+    )
 
     # Populate the array
     for i, face in enumerate(connectivity):
-        face_node_connectivity[i, :len(face)] = face
+        face_node_connectivity[i, : len(face)] = face
 
     # Create the output dataset
-    out_ds = ux.Dataset()
+    out_ds = xr.Dataset()
     out_ds[ugrid.NODE_COORDINATES[0]] = xr.DataArray(
-        lon, dims=[ugrid.NODE_DIM], attrs=ugrid.NODE_LON_ATTRS)
+        lon, dims=[ugrid.NODE_DIM], attrs=ugrid.NODE_LON_ATTRS
+    )
     out_ds[ugrid.NODE_COORDINATES[1]] = xr.DataArray(
-        lat, dims=[ugrid.NODE_DIM], attrs=ugrid.NODE_LAT_ATTRS)
+        lat, dims=[ugrid.NODE_DIM], attrs=ugrid.NODE_LAT_ATTRS
+    )
     out_ds["face_node_connectivity"] = xr.DataArray(
         data=face_node_connectivity,
         dims=ugrid.FACE_NODE_CONNECTIVITY_DIMS,

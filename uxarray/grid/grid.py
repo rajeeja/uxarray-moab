@@ -25,6 +25,7 @@ from uxarray.io._ugrid import (
 )
 from uxarray.io._scrip import _read_scrip, _encode_scrip
 from uxarray.io._esmf import _read_esmf
+from uxarray.io._moab import _read_moab
 from uxarray.io._vertices import _read_face_vertices
 from uxarray.io._topology import _read_topology
 from uxarray.io._geos import _read_geos_cs
@@ -370,6 +371,10 @@ class Grid:
                 source_grid_spec = "OtherGeoFormat"
 
             grid_ds, source_dims_dict = _read_geodataframe(filename)
+
+        elif backend == "moab":
+            source_grid_spec = "MOAB"
+            grid_ds, source_dims_dict = _read_moab(filename)
 
         elif backend == "xarray":
             dataset = xr.open_dataset(filename, **kwargs)
