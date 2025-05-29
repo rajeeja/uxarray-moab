@@ -1,3 +1,8 @@
+import xarray as xr
+
+from uxarray.io.utils import _get_source_dims_dict, _parse_grid_type
+
+
 def _map_dims_to_ugrid(
     ds,
     _source_dims_dict,
@@ -7,10 +12,7 @@ def _map_dims_to_ugrid(
     remaps the original dimension name to match the UGRID conventions (i.e.
     "nCell": "n_face")"""
 
-    if grid.source_grid_spec == "HEALPix":
-        ds = ds.swap_dims({"cell": "n_face"})
-
-    elif grid.source_grid_spec == "Structured":
+    if grid.source_grid_spec == "Structured":
         # Case for structured grids, flatten bottom two sptial dimensions
 
         lon_name, lat_name = _source_dims_dict["n_face"]
@@ -62,3 +64,23 @@ def _map_dims_to_ugrid(
         ds = ds.swap_dims(_source_dims_dict)
 
     return ds
+
+
+def match_chunks_to_ugrid(grid_filename_or_obj, chunks):
+    """Matches chunks to of the original dimensions to the UGRID conventions."""
+
+    if not isinstance(chunks, dict):
+        # No need to rename
+        return chunks
+
+    ds = xr.open_dataset(grid_filename_or_obj, chunks=chunks)
+    grid_spec, _, _ = _parse_grid_type(ds)
+
+    source_dims_dict = _get_source_dims_dict(ds, grid_spec)
+
+    # correctly chunk standardized ugrid dimension names
+    for original_grid_dim, ugrid_grid_dim in source_dims_dict.items():
+        if ugrid_grid_dim in chunks:
+            chunks[original_grid_dim] = chunks[ugrid_grid_dim]
+
+    return chunks

@@ -1,8 +1,8 @@
 import xarray as xr
 
 import uxarray.conventions.ugrid as ugrid
+from uxarray.constants import INT_DTYPE, INT_FILL_VALUE
 from uxarray.grid.connectivity import _replace_fill_values
-from uxarray.constants import INT_FILL_VALUE, INT_DTYPE
 
 
 def _read_topology(
@@ -45,11 +45,13 @@ def _read_topology(
             else:
                 conn_arr = kwargs[conn]
 
-            ds[conn] = xr.DataArray(
-                data=_process_connectivity(conn_arr, fill_value, start_index),
+            conn_da = xr.DataArray(
+                data=conn_arr,
                 dims=ugrid.CONNECTIVITY[conn]["dims"],
                 attrs=ugrid.CONNECTIVITY[conn]["attrs"],
             )
+
+            ds[conn] = _process_connectivity(conn_da, fill_value, start_index)
 
     return ds
 
@@ -65,6 +67,10 @@ def _process_connectivity(conn, orig_fv, start_index):
     if orig_fv != INT_FILL_VALUE:
         conn = _replace_fill_values(conn, orig_fv, INT_FILL_VALUE, INT_DTYPE)
 
-    conn[conn != INT_FILL_VALUE] -= start_index
+    conn = xr.where(
+        conn != INT_FILL_VALUE,
+        conn - start_index,
+        conn,
+    )
 
     return conn

@@ -4,6 +4,7 @@ import pytest
 import uxarray as ux
 import xarray as xr
 from pathlib import Path
+import numpy.testing as nt
 from uxarray.constants import INT_DTYPE, INT_FILL_VALUE
 from uxarray.io._mpas import _replace_padding, _replace_zeros, _to_zero_index, _read_mpas
 
@@ -73,6 +74,9 @@ def test_add_fill_values():
     nEdgesOnCell = np.array([2, 3, 2])
     gold_output = np.array([[0, 1, fv, fv], [2, 3, 4, fv], [5, 6, fv, fv]], dtype=INT_DTYPE)
 
+    verticesOnCell = xr.DataArray(data=verticesOnCell, dims=['n_face', 'n_max_face_nodes'])
+    nEdgesOnCell = xr.DataArray(data=nEdgesOnCell, dims=['n_face'])
+
     verticesOnCell = _replace_padding(verticesOnCell, nEdgesOnCell)
     verticesOnCell = _replace_zeros(verticesOnCell)
     verticesOnCell = _to_zero_index(verticesOnCell)
@@ -107,3 +111,14 @@ def test_face_area():
 
     assert "face_areas" in uxgrid_primal._ds
     assert "face_areas" in uxgrid_dual._ds
+
+
+def test_distance_units():
+    xrds = xr.open_dataset(mpas_ocean_mesh)
+    uxgrid = ux.open_grid(mpas_ocean_mesh)
+
+    assert "edge_node_distances" in uxgrid._ds
+    assert "edge_face_distances" in uxgrid._ds
+
+    nt.assert_array_almost_equal(uxgrid['edge_node_distances'].values, (xrds['dvEdge'].values / xrds.attrs['sphere_radius']))
+    nt.assert_array_almost_equal(uxgrid['edge_face_distances'].values, (xrds['dcEdge'].values / xrds.attrs['sphere_radius']))
