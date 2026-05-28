@@ -4,7 +4,7 @@ FROM --platform=linux/arm64 ubuntu:24.04
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
 ENV HDF5_DIR=/usr/lib/aarch64-linux-gnu/hdf5/serial
-ENV POLARS_SKIP_CPU_CHECK=1  
+ENV POLARS_SKIP_CPU_CHECK=1
 
 # Install necessary dependencies
 RUN apt-get update && apt-get install -y \
