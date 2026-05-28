@@ -1,9 +1,9 @@
 import numpy as np
 import xarray as xr
-from pymoab import core, types
-from uxarray.grid.coordinates import _xyz_to_lonlat_deg
+
 from uxarray.constants import INT_DTYPE, INT_FILL_VALUE
 from uxarray.conventions import ugrid
+from uxarray.grid.coordinates import _xyz_to_lonlat_deg
 
 
 def _read_moab(filename):
@@ -23,6 +23,13 @@ def _read_moab(filename):
         Mapping of MOAB dimensions to UGRID dimensions.
     """
 
+    try:
+        from pymoab import core, types
+    except ImportError as err:
+        raise ImportError(
+            "Reading MOAB mesh files requires the optional 'pymoab' dependency."
+        ) from err
+
     # Initialize MOAB core
     mb = core.Core()
 
@@ -30,17 +37,19 @@ def _read_moab(filename):
     mb.load_file(filename)
 
     # Get all vertices
-    vertices = mb.get_entities_by_type(0, types.MBVERTEX)
+    vertices = list(mb.get_entities_by_type(0, types.MBVERTEX))
     coords = mb.get_coords(vertices).reshape(-1, 3)  # Assuming 3D coordinates
 
     # Get 2D polygonal elements
-    elements = mb.get_entities_by_dimension(0, 2)
+    elements = list(mb.get_entities_by_dimension(0, 2))
 
     # Get connectivity for each polygon
-    connectivity = [mb.get_connectivity(e) for e in elements]
+    connectivity = [list(mb.get_connectivity(e)) for e in elements]
 
-    # Ensure all indices are 0-based if necessary (adjust for 1-based indexing)
-    connectivity = [[idx - 1 for idx in face] for face in connectivity]
+    if not connectivity:
+        raise ValueError(f"No 2D elements found in MOAB mesh file: {filename}")
+
+    connectivity = _moab_connectivity_to_indices(vertices, connectivity)
 
     # Convert to spherical coordinates (longitude, latitude)
     lon, lat = _xyz_to_lonlat_deg(coords[:, 0], coords[:, 1], coords[:, 2])
@@ -75,3 +84,10 @@ def _read_moab(filename):
     }
 
     return out_ds, source_dims_dict
+
+
+def _moab_connectivity_to_indices(vertices, connectivity):
+    """Map MOAB vertex handles in face connectivity to zero-based node indices."""
+
+    vertex_indices = {vertex: idx for idx, vertex in enumerate(vertices)}
+    return [[vertex_indices[vertex] for vertex in face] for face in connectivity]

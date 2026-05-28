@@ -84,7 +84,6 @@ from uxarray.io._geopandas import _read_geodataframe
 from uxarray.io._geos import _read_geos_cs
 from uxarray.io._healpix import _pixels_to_ugrid, _populate_healpix_boundaries
 from uxarray.io._icon import _read_icon
-from uxarray.io._moab import _read_moab
 from uxarray.io._mpas import _read_mpas
 from uxarray.io._scrip import _encode_scrip, _read_scrip
 from uxarray.io._structured import _read_structured_grid
@@ -359,6 +358,8 @@ class Grid:
             grid_ds, source_dims_dict = _read_geodataframe(filename)
 
         elif backend == "moab":
+            from uxarray.io._moab import _read_moab
+
             source_grid_spec = "MOAB"
             grid_ds, source_dims_dict = _read_moab(filename)
 
