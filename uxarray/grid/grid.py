@@ -357,6 +357,12 @@ class Grid:
 
             grid_ds, source_dims_dict = _read_geodataframe(filename)
 
+        elif backend == "moab":
+            from uxarray.io._moab import _read_moab
+
+            source_grid_spec = "MOAB"
+            grid_ds, source_dims_dict = _read_moab(filename)
+
         elif backend == "xarray":
             dataset = _open_dataset_with_fallback(filename, **kwargs)
             return cls.from_dataset(dataset)
